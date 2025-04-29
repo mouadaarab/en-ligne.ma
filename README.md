@@ -103,7 +103,7 @@ Ce projet est sous licence [MIT](https://opensource.org/licenses/MIT).
 
 ## Auteur
 
-Votre Nom - [Votre Email](mailto:mouad@en-ligne.ma)
+mouad - [Votre Email](mailto:mouad@en-ligne.ma)
 
 ---
 
