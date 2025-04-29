@@ -1,0 +1,123 @@
+name: En-Ligne CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  tests:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, gd
+          tools: composer:v2
+          coverage: none
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Run tests
+        run: php artisan test --parallel
+
+      - name: Run static analysis
+        run: ./vendor/bin/pint --test
+
+  build:
+    name: Build Assets
+    needs: tests
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build
+
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-assets
+          path: public/build
+
+  deploy:
+    name: Deploy to Production
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download production artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-assets
+          path: public/build
+
+      - name: Deploy to Production
+        # Dans un environnement réel, vous utiliseriez Laravel Forge/Envoyer/Vapor ici
+        run: |
+          echo "Déploiement vers l'environnement de production"
+          # Exemple pour Laravel Forge
+          # curl -s "https://forge.laravel.com/servers/YOUR-SERVER-ID/sites/YOUR-SITE-ID/deploy/http?token=YOUR-FORGE-TOKEN"
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: build
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download production artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-assets
+          path: public/build
+
+      - name: Deploy to Staging
+        run: |
+          echo "Déploiement vers l'environnement de staging"
+          # Exemple pour Laravel Forge
+          # curl -s "https://forge.laravel.com/servers/YOUR-STAGING-SERVER-ID/sites/YOUR-STAGING-SITE-ID/deploy/http?token=YOUR-FORGE-TOKEN"

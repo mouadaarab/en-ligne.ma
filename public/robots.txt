@@ -1,0 +1,24 @@
+User-agent: *
+Allow: /
+
+# Interdire l'accès aux pages d'administration
+Disallow: /admin/
+Disallow: /login
+Disallow: /register
+
+# Interdire l'accès aux assets et fichiers système
+Disallow: /storage/
+Disallow: /vendor/
+Disallow: /node_modules/
+Disallow: /.git/
+
+# Autoriser l'accès à Googlebot à tous les contenus
+User-agent: Googlebot
+Allow: /
+
+# Autoriser l'accès à Bingbot à tous les contenus
+User-agent: Bingbot
+Allow: /
+
+# Sitemap
+Sitemap: https://en-ligne.ma/sitemap.xml
